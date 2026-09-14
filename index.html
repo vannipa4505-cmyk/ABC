@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ไอ่จ่างขายของ.com</title>
+    <style>
+        :root {
+            --bg-color: #0F0B1E;
+            --card-bg: #1B1438;
+            --primary: #9D4EDD;
+            --accent: #C77DFF;
+            --text-color: #E0AAFF;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        body { background-color: var(--bg-color); color: #fff; padding: 16px; }
+        header { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #241B4E; margin-bottom: 20px; }
+        h1 { font-size: 18px; color: var(--text-color); }
+        .nav-btns { display: flex; gap: 8px; }
+        .btn { background: var(--primary); color: #fff; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px; }
+        .btn-admin { background: #7B2CBF; }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .card { background: var(--card-bg); border: 1px solid rgba(157, 78, 221, 0.3); border-radius: 12px; padding: 16px; text-align: center; }
+        .icon { font-size: 40px; margin-bottom: 8px; }
+        .title { font-size: 14px; font-weight: bold; margin-bottom: 6px; }
+        .price { color: var(--accent); font-weight: bold; margin-bottom: 12px; }
+        .buy-btn { background: var(--primary); color: #fff; border: none; width: 100%; padding: 8px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 100; }
+        .modal-content { background: var(--card-bg); padding: 24px; border-radius: 16px; width: 90%; max-width: 400px; border: 1px solid var(--primary); }
+        .modal-content h2 { margin-bottom: 12px; font-size: 18px; color: var(--text-color); }
+        .close-btn { background: #d90429; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; margin-top: 12px; cursor: pointer; width: 100%; }
+        input { width: 100%; padding: 10px; margin-bottom: 12px; border-radius: 6px; border: 1px solid var(--primary); background: #0F0B1E; color: #fff; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>⚡ ไอ่จ่างขายของ.com</h1>
+        <div class="nav-btns">
+            <button class="btn btn-admin" onclick="openAdminModal()">⚙️ หลังบ้าน</button>
+            <button class="btn" onclick="openCart()">🛒 (<span id="cart-count">0</span>)</button>
+        </div>
+    </header>
+
+    <div class="grid" id="product-list"></div>
+
+    <!-- Modal ตะกร้าสินค้า -->
+    <div class="modal" id="cart-modal">
+        <div class="modal-content">
+            <h2>ตะกร้าสินค้าของคุณ</h2>
+            <div id="cart-items" style="margin-bottom: 12px; font-size: 14px;">ยังไม่มีสินค้าในตะกร้า</div>
+            <div id="cart-total" style="font-weight: bold; margin-bottom: 12px; color: var(--accent);">ยอดรวม: ฿0</div>
+            <button class="buy-btn" onclick="checkout()">ชำระเงิน (PromptPay / TrueMoney)</button>
+            <button class="close-btn" onclick="closeModal('cart-modal')">ปิด</button>
+        </div>
+    </div>
+
+    <!-- Modal หลังบ้าน Dual-Admin -->
+    <div class="modal" id="admin-modal">
+        <div class="modal-content">
+            <h2>ระบบหลังบ้าน (Dual Admin)</h2>
+            <div id="admin-login-area">
+                <p style="font-size: 13px; margin-bottom: 10px; color: #ccc;">กรอกรหัสผ่านเพื่อเข้าสู่ระบบแอดมิน:</p>
+                <input type="password" id="admin-pass" placeholder="รหัสผ่านแอดมิน">
+                <button class="buy-btn" onclick="loginAdmin()">เข้าสู่ระบบ</button>
+            </div>
+            <div id="admin-panel-area" style="display:none;">
+                <p id="admin-status" style="color: var(--accent); font-weight: bold; margin-bottom: 10px;"></p>
+                <p style="font-size: 13px; margin-bottom: 8px;">เพิ่มสินค้าใหม่:</p>
+                <input type="text" id="new-name" placeholder="ชื่อสินค้า">
+                <input type="number" id="new-price" placeholder="ราคา">
+                <button class="buy-btn" onclick="addProduct()">เพิ่มลงร้านค้า</button>
+                <button class="btn" style="width:100%; margin-top:10px; background:#444;" onclick="logoutAdmin()">ออกจากระบบหลังบ้าน</button>
+            </div>
+            <button class="close-btn" onclick="closeModal('admin-modal')">ปิดหน้าต่าง</button>
+        </div>
+    </div>
+
+    <script>
+        let products = [
+            { id: 1, title: 'สคริปต์นีออน VIP', price: 350, icon: '⚡' },
+            { id: 2, title: 'ไอดีเกรดพรีเมียม', price: 890, icon: '💎' },
+            { id: 3, title: 'บอทฟาร์มแต้มออโต้', price: 1200, icon: '🤖' },
+            { id: 4, title: 'คูปองส่วนลดพิเศษ', price: 99, icon: '🎟️' }
+        ];
+
+        let cart = [];
+        let currentAdmin = '';
+
+        function renderProducts() {
+            const list = document.getElementById('product-list');
+            list.innerHTML = products.map(p => `
+                <div class="card">
+                    <div class="icon">${p.icon}</div>
+                    <div class="title">${p.title}</div>
+                    <div class="price">฿${p.price}</div>
+                    <button class="buy-btn" onclick="addToCart(${p.id})">ใส่ตะกร้า</button>
+                </div>
+            `).join('');
+        }
+
+        function addToCart(id) {
+            const product = products.find(p => p.id === id);
+            const item = cart.find(i => i.id === id);
+            if (item) {
+                item.qty++;
+            } else {
+                cart.push({ ...product, qty: 1 });
+            }
+            updateCartCount();
+            alert(`เพิ่ม "${product.title}" ลงตะกร้าแล้ว!`);
+        }
+
+        function updateCartCount() {
+            const totalQty = cart.reduce((sum, i) => sum + i.qty, 0);
+            document.getElementById('cart-count').innerText = totalQty;
+        }
+
+        function openCart() {
+            document.getElementById('cart-modal').style.display = 'flex';
+            const itemsDiv = document.getElementById('cart-items');
+            if (cart.length === 0) {
+                itemsDiv.innerHTML = 'ยังไม่มีสินค้าในตะกร้า';
+                document.getElementById('cart-total').innerText = 'ยอดรวม: ฿0';
+                return;
+            }
+            let total = 0;
+            itemsDiv.innerHTML = cart.map(i => {
+                let sum = i.price * i.qty;
+                total += sum;
+                return `<div>${i.icon} ${i.title} x ${i.qty} = ฿${sum}</div>`;
+            }).join('');
+            document.getElementById('cart-total').innerText = `ยอดรวม: ฿${total}`;
+        }
+
+        function openAdminModal() {
+            document.getElementById('admin-modal').style.display = 'flex';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function loginAdmin() {
+            const pass = document.getElementById('admin-pass').value;
+            if (pass === 'admin1234') {
+                currentAdmin = 'แอดมินหลัก (คุณ)';
+            } else if (pass === 'friend1234') {
+                currentAdmin = 'แอดมินเพื่อน (ยูจิน)';
+            } else {
+                alert('รหัสผ่านไม่ถูกต้อง!');
+                return;
+            }
+            document.getElementById('admin-login-area').style.display = 'none';
+            document.getElementById('admin-panel-area').style.display = 'block';
+            document.getElementById('admin-status').innerText = `ล็อกอินสำเร็จ: ${currentAdmin}`;
+            document.getElementById('admin-pass').value = '';
+        }
+
+        function logoutAdmin() {
+            currentAdmin = '';
+            document.getElementById('admin-login-area').style.display = 'block';
+            document.getElementById('admin-panel-area').style.display = 'none';
+        }
+
+        function addProduct() {
+            const name = document.getElementById('new-name').value;
+            const price = parseFloat(document.getElementById('new-price').value);
+            if (!name || isNaN(price)) {
+                alert('กรุณากรอกข้อมูลให้ครบถ้วน!');
+                return;
+            }
+            products.push({ id: products.length + 1, title: name, price: price, icon: '📦' });
+            document.getElementById('new-name').value = '';
+            document.getElementById('new-price').value = '';
+            closeModal('admin-modal');
+            renderProducts();
+            alert(`เพิ่มสินค้า "${name}" สำเร็จโดย ${currentAdmin}!`);
+        }
+
+        function checkout() {
+            if (cart.length === 0) {
+                alert('ตะกร้าว่างเปล่า!');
+                return;
+            }
+            alert('สั่งซื้อสำเร็จ! ขอบคุณที่ใช้บริการ ไอ่จ่างขายของ.com');
+            cart = [];
+            updateCartCount();
+            closeModal('cart-modal');
+        }
+
+        renderProducts();
+    </script>
+</body>
+              </html>
+  

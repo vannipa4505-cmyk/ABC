@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ไอ่จ่างขายของ.com</title>
+    <style>
+        :root {
+            --bg-color: #0F0B1E;
+            --card-bg: #1B1438;
+            --primary: #9D4EDD;
+            --accent: #C77DFF;
+            --text-color: #E0AAFF;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        body { background-color: var(--bg-color); color: #fff; padding: 16px; }
+        header { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #241B4E; margin-bottom: 20px; }
+        h1 { font-size: 18px; color: var(--text-color); cursor: pointer; }
+        .nav-btns { display: flex; gap: 8px; }
+        .btn { background: var(--primary); color: #fff; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px; }
+        .btn-admin { background: #7B2CBF; }
+        
+        .view-section { display: none; }
+        .view-section.active { display: block; }
+
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .card { background: var(--card-bg); border: 1px solid rgba(157, 78, 221, 0.3); border-radius: 12px; padding: 16px; text-align: center; display: flex; flex-direction: column; justify-content: space-between; }
+        .icon { font-size: 40px; margin-bottom: 8px; }
+        .title { font-size: 14px; font-weight: bold; margin-bottom: 6px; }
+        .price { color: var(--accent); font-weight: bold; margin-bottom: 12px; }
+        .buy-btn { background: var(--primary); color: #fff; border: none; width: 100%; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 6px; }
+        
+        /* Modal ตะกร้าและกล่องแสดงโค้ด */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 100; }
+        .modal-content { background: var(--card-bg); padding: 24px; border-radius: 16px; width: 90%; max-width: 420px; border: 1px solid var(--primary); }
+        .modal-content h2 { margin-bottom: 12px; font-size: 18px; color: var(--text-color); }
+        .close-btn { background: #d90429; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; margin-top: 12px; cursor: pointer; width: 100%; }
+        
+        /* ช่องกรอกและแสดงโค้ด */
+        input, textarea { width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 8px; border: 1px solid var(--primary); background: #0F0B1E; color: #fff; font-size: 13px; }
+        textarea { resize: vertical; height: 80px; font-family: monospace; }
+        .code-box { background: #07050f; border: 1px dashed var(--accent); padding: 10px; border-radius: 6px; font-family: monospace; font-size: 12px; color: #00ffcc; max-height: 120px; overflow-y: auto; margin-bottom: 10px; text-align: left; }
+        
+        .admin-box { background: var(--card-bg); border: 1px solid var(--primary); border-radius: 16px; padding: 20px; max-width: 550px; margin: 0 auto; }
+        .admin-item-row { display: flex; justify-content: space-between; align-items: center; background: #0F0B1E; padding: 10px 14px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #241B4E; font-size: 13px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 onclick="switchView('shop')">⚡ ไอ่จ่างขายของ.com</h1>
+        <div class="nav-btns">
+            <button class="btn btn-admin" onclick="openAdminScreen()">⚙️ หลังบ้าน</button>
+            <button class="btn" onclick="openCart()">🛒 (<span id="cart-count">0</span>)</button>
+        </div>
+    </header>
+
+    <!-- ================= 1. หน้าหน้าร้านค้า ================= -->
+    <div id="shop-view" class="view-section active">
+        <div class="grid" id="product-list"></div>
+    </div>
+
+    <!-- ================= 2. หน้าหลังบ้านเต็มจอ (Dual Admin) ================= -->
+    <div id="admin-view" class="view-section">
+        <div class="admin-box">
+            <h2 style="color: var(--text-color); margin-bottom: 16px;">🛠️ ระบบหลังบ้าน (แอดมินคู่)</h2>
+            
+            <div id="admin-login-box">
+                <p style="font-size: 13px; margin-bottom: 10px; color: #ccc;">กรอกรหัสผ่านเพื่อเข้าใช้งาน:</p>
+                <input type="password" id="admin-pass" placeholder="รหัสผ่าน (admin1234 หรือ friend1234)">
+                <button class="buy-btn" onclick="loginAdmin()">เข้าสู่ระบบหลังบ้าน</button>
+            </div>
+
+            <div id="admin-dashboard-box" style="display:none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <span id="admin-welcome-text" style="color: var(--accent); font-weight: bold;"></span>
+                    <button class="btn" style="background:#d90429; padding: 6px 10px; font-size: 11px;" onclick="logoutAdmin()">ออกจากระบบ</button>
+                </div>
+
+                <hr style="border-color: #241B4E; margin-bottom: 16px;">
+
+                <p style="font-size: 14px; font-weight: bold; margin-bottom: 8px;">➕ เพิ่มสินค้า/สคริปต์ใหม่:</p>
+                <input type="text" id="new-name" placeholder="ชื่อสินค้า เช่น Script Blox Fruits">
+                <input type="number" id="new-price" placeholder="ราคา (บาท)">
+                <textarea id="new-script" placeholder="ใส่โค้ดสคริปต์ (Lua/JS) ที่ลูกค้าจะได้รับหลังซื้อ..."></textarea>
+                <button class="buy-btn" onclick="addProduct()">บันทึกเพิ่มสินค้า</button>
+
+                <hr style="border-color: #241B4E; margin: 20px 0;">
+
+                <p style="font-size: 14px; font-weight: bold; margin-bottom: 8px;">📦 รายการสินค้าและสคริปต์ในระบบ:</p>
+                <div id="admin-product-list" style="max-height: 220px; overflow-y: auto;"></div>
+            </div>
+            
+            <button class="btn" style="width:100%; margin-top: 16px; background: #333;" onclick="switchView('shop')">⬅️ กลับหน้าร้านค้า</button>
+        </div>
+    </div>
+
+    <!-- ================= 3. Modal ตะกร้าสินค้า ================= -->
+    <div class="modal" id="cart-modal">
+        <div class="modal-content">
+            <h2>ตะกร้าสินค้าของคุณ</h2>
+            <div id="cart-items" style="margin-bottom: 12px; font-size: 14px;">ยังไม่มีสินค้าในตะกร้า</div>
+            <div id="cart-total" style="font-weight: bold; margin-bottom: 12px; color: var(--accent);">ยอดรวม: ฿0</div>
+            <button class="buy-btn" onclick="checkout()">ชำระเงิน (PromptPay / TrueMoney)</button>
+            <button class="close-btn" onclick="closeModal('cart-modal')">ปิด</button>
+        </div>
+    </div>
+
+    <!-- ================= 4. Modal แสดงโค้ดหลังซื้อสำเร็จ ================= -->
+    <div class="modal" id="code-modal">
+        <div class="modal-content" style="text-align: center;">
+            <h2 style="color: #00ffcc;">🎉 ชำระเงินสำเร็จ!</h2>
+            <p style="font-size: 13px; margin-bottom: 10px;">นี่คือสคริปต์และโค้ดสินค้าของคุณ:</p>
+            <div class="code-box" id="purchased-codes-display"></div>
+            <button class="buy-btn" style="background: #2b9348;" onclick="copyAllCodes()">📋 คัดลอกสคริปต์ทั้งหมด</button>
+            <button class="close-btn" onclick="closeModal('code-modal')">เสร็จสิ้น</button>
+        </div>
+    </div>
+
+    <script>
+        let products = [
+            { id: 1, title: 'สคริปต์นีออน VIP', price: 350, icon: '⚡', scriptCode: 'loadstring(game:HttpGet("https://raw.githubusercontent.com/ijang/vip-script.lua"))()' },
+            { id: 2, title: 'บอทฟาร์มแต้มออโต้', price: 1200, icon: '🤖', scriptCode: 'print("Auto Farm Script Loaded!")\n-- Insert your custom token here' }
+        ];
+
+        let cart = [];
+        let currentAdmin = '';
+
+        function switchView(viewName) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            if (viewName === 'shop') {
+                document.getElementById('shop-view').classList.add('active');
+                renderProducts();
+            } else if (viewName === 'admin') {
+                document.getElementById('admin-view').classList.add('active');
+                if (currentAdmin) renderAdminProductList();
+            }
+        }
+
+        function openAdminScreen() { switchView('admin'); }
+
+        function renderProducts() {
+            const list = document.getElementById('product-list');
+            list.innerHTML = products.map(p => `
+                <div class="card">
+                    <div>
+                        <div class="icon">${p.icon}</div>
+                        <div class="title">${p.title}</div>
+                        <div class="price">฿${p.price}</div>
+                    </div>
+                    <button class="buy-btn" onclick="addToCart(${p.id})">ใส่ตะกร้า</button>
+                </div>
+            `).join('');
+        }
+
+        function addToCart(id) {
+            const product = products.find(p => p.id === id);
+            const item = cart.find(i => i.product.id === id);
+            if (item) { item.quantity++; } else { cart.push({ product: product, quantity: 1 }); }
+            updateCartCount();
+            alert(`เพิ่ม "${product.title}" ลงตะกร้าแล้ว!`);
+        }
+
+        function updateCartCount() {
+            const totalQty = cart.reduce((sum, i) => sum + i.quantity, 0);
+            document.getElementById('cart-count').innerText = totalQty;
+        }
+
+        function openCart() {
+            document.getElementById('cart-modal').style.display = 'flex';
+            const itemsDiv = document.getElementById('cart-items');
+            if (cart.length === 0) {
+                itemsDiv.innerHTML = 'ยังไม่มีสินค้าในตะกร้า';
+                document.getElementById('cart-total').innerText = 'ยอดรวม: ฿0';
+                return;
+            }
+            let total = 0;
+            itemsDiv.innerHTML = cart.map(i => {
+                let sum = i.product.price * i.quantity;
+                total += sum;
+                return `<div>${i.product.icon} ${i.product.title} x ${i.quantity} = ฿${sum}</div>`;
+            }).join('');
+            document.getElementById('cart-total').innerText = `ยอดรวม: ฿${total}`;
+        }
+
+        function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
+
+        function loginAdmin() {
+            const pass = document.getElementById('admin-pass').value;
+            if (pass === 'admin1234') {
+                currentAdmin = '👑 แอดมินหลัก (คุณ)';
+            } else if (pass === 'friend1234') {
+                currentAdmin = '🤝 แอดมินเพื่อน (ยูจิน)';
+            } else {
+                alert('รหัสผ่านไม่ถูกต้อง!');
+                return;
+            }
+            document.getElementById('admin-login-box').style.display = 'none';
+            document.getElementById('admin-dashboard-box').style.display = 'block';
+            document.getElementById('admin-welcome-text').innerText = `สถานะ: ${currentAdmin}`;
+            document.getElementById('admin-pass').value = '';
+            renderAdminProductList();
+        }
+
+        function logoutAdmin() {
+            currentAdmin = '';
+            document.getElementById('admin-login-box').style.display = 'block';
+            document.getElementById('admin-dashboard-box').style.display = 'none';
+        }
+
+        function addProduct() {
+            const name = document.getElementById('new-name').value;
+            const price = parseFloat(document.getElementById('new-price').value);
+            const scriptCode = document.getElementById('new-script').value;
+            if (!name || isNaN(price)) {
+                alert('กรุณากรอกชื่อและราคาให้ครบถ้วน!');
+                return;
+            }
+            products.push({ id: Date.now(), title: name, price: price, icon: '📜', scriptCode: scriptCode || '-- ไม่มีสคริปต์แนบมาด้วย' });
+            document.getElementById('new-name').value = '';
+            document.getElementById('new-price').value = '';
+            document.getElementById('new-script').value = '';
+            renderAdminProductList();
+            alert(`เพิ่มสินค้า "${name}" พร้อมระบบสคริปต์สำเร็จ!`);
+        }
+
+        function deleteProduct(id) {
+            products = products.filter(p => p.id !== id);
+            renderAdminProductList();
+        }
+
+        function renderAdminProductList() {
+            const listDiv = document.getElementById('admin-product-list');
+            if (products.length === 0) {
+                listDiv.innerHTML = '<p style="color:#888; font-size:13px;">ไม่มีสินค้าในระบบ</p>';
+                return;
+            }
+            listDiv.innerHTML = products.map(p => `
+                <div class="admin-item-row">
+                    <div><b>${p.title}</b> (฿${p.price})<br><span style="color:#00ffcc; font-size:11px;">[มีสคริปต์พร้อมส่ง]</span></div>
+                    <button class="btn" style="background:#d90429; padding: 4px 8px; font-size: 11px;" onclick="deleteProduct(${p.id})">ลบ</button>
+                </div>
+            `).join('');
+        }
+
+        function checkout() {
+            if (cart.length === 0) {
+                alert('ตะกร้าว่างเปล่า!');
+                return;
+            }
+
+            let combinedCodes = cart.map(item => `--- [ ${item.product.title} ] ---\n${item.product.scriptCode || '-- ไม่มีโค้ด'}`).join('\n\n');
+            
+            document.getElementById('purchased-codes-display').innerText = combinedCodes;
+            
+            cart = [];
+            updateCartCount();
+            closeModal('cart-modal');
+            document.getElementById('code-modal').style.display = 'flex';
+        }
+
+        function copyAllCodes() {
+            const textToCopy = document.getElementById('purchased-codes-display').innerText;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                alert('คัดลอกสคริปต์ทั้งหมดไปยังคลิปบอร์ดแล้ว!');
+            }).catch(err => {
+                alert('คัดลอกไม่สำเร็จ: ' + err);
+            });
+        }
+
+        renderProducts();
+    </script>
+</body>
+</html>
